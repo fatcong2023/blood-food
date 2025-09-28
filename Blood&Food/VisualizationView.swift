@@ -4,6 +4,7 @@ import Charts
 
 struct VisualizationView: View {
     @Query(sort: \MealEntry.timestamp, order: .forward) private var mealEntries: [MealEntry]
+    @EnvironmentObject var themeManager: ThemeManager
 
     private var completedEntries: [MealEntry] {
         mealEntries.filter { $0.isComplete }
@@ -24,23 +25,27 @@ struct VisualizationView: View {
         }
         .navigationTitle("Analytics")
         .navigationBarTitleDisplayMode(.large)
+        .background(themeManager.currentTheme.backgroundColor)
     }
 }
 
 struct EmptyVisualizationView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 60))
-                .foregroundColor(.gray)
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
             Text("No Data Yet")
                 .font(.title2)
                 .fontWeight(.semibold)
+                .foregroundColor(themeManager.currentTheme.primaryTextColor)
 
             Text("Add some meal entries with blood sugar readings to see your patterns here.")
                 .font(.body)
-                .foregroundColor(.secondary)
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -50,23 +55,24 @@ struct EmptyVisualizationView: View {
 
 struct BloodSugarTrendChart: View {
     let entries: [MealEntry]
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
-        Card(title: "Blood Sugar Trends") {
+        ThemedCard(title: "Blood Sugar Trends") {
             Chart {
                 ForEach(entries.suffix(10), id: \.id) { entry in
                     LineMark(
                         x: .value("Time", entry.timestamp),
                         y: .value("Before Meal", entry.bloodSugarBefore ?? 0)
                     )
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(themeManager.currentTheme.chartBeforeColor)
                     .symbol(.circle)
 
                     LineMark(
                         x: .value("Time", entry.timestamp.addingTimeInterval(3600)),
                         y: .value("After Meal", entry.bloodSugarAfter ?? 0)
                     )
-                    .foregroundStyle(.red)
+                    .foregroundStyle(themeManager.currentTheme.chartAfterColor)
                     .symbol(.square)
                 }
             }
@@ -75,9 +81,9 @@ struct BloodSugarTrendChart: View {
             .chartLegend {
                 HStack {
                     Label("Before Meal", systemImage: "circle.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentTheme.chartBeforeColor)
                     Label("After Meal", systemImage: "square.fill")
-                        .foregroundColor(.red)
+                        .foregroundColor(themeManager.currentTheme.chartAfterColor)
                 }
                 .font(.caption)
             }
@@ -87,6 +93,7 @@ struct BloodSugarTrendChart: View {
 
 struct BloodSugarChangeChart: View {
     let entries: [MealEntry]
+    @EnvironmentObject var themeManager: ThemeManager
 
     private var changes: [(Date, Double)] {
         entries.compactMap { entry in
@@ -97,18 +104,18 @@ struct BloodSugarChangeChart: View {
     }
 
     var body: some View {
-        Card(title: "Blood Sugar Changes") {
+        ThemedCard(title: "Blood Sugar Changes") {
             Chart {
                 ForEach(changes.suffix(10), id: \.0) { timestamp, change in
                     BarMark(
                         x: .value("Date", timestamp),
                         y: .value("Change", change)
                     )
-                    .foregroundStyle(change > 0 ? .red : .green)
+                    .foregroundStyle(change > 0 ? themeManager.currentTheme.positiveChangeColor : themeManager.currentTheme.negativeChangeColor)
                 }
 
                 RuleMark(y: .value("Baseline", 0))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(themeManager.currentTheme.secondaryTextColor)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
             }
             .frame(height: 150)
@@ -117,6 +124,7 @@ struct BloodSugarChangeChart: View {
                     AxisValueLabel {
                         if let intValue = value.as(Double.self) {
                             Text("\(intValue > 0 ? "+" : "")\(Int(intValue))")
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
                         }
                     }
                 }
@@ -127,9 +135,10 @@ struct BloodSugarChangeChart: View {
 
 struct SummaryStatsView: View {
     let entries: [MealEntry]
+    @EnvironmentObject var themeManager: ThemeManager
 
     private var averageIncrease: Double {
-        let increases = entries.compactMap { entry in
+        let increases = entries.compactMap { entry -> Double? in
             guard let before = entry.bloodSugarBefore,
                   let after = entry.bloodSugarAfter else { return nil }
             return after - before
@@ -151,28 +160,30 @@ struct SummaryStatsView: View {
         VStack(spacing: 12) {
             Text("Summary Statistics")
                 .font(.headline)
+                .foregroundColor(themeManager.currentTheme.primaryTextColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 16) {
-                StatCard(title: "Avg Before", value: "\(Int(averageBeforeMeal))", unit: "mg/dL", color: .blue)
-                StatCard(title: "Avg After", value: "\(Int(averageAfterMeal))", unit: "mg/dL", color: .red)
-                StatCard(title: "Avg Change", value: "\(averageIncrease > 0 ? "+" : "")\(Int(averageIncrease))", unit: "mg/dL", color: averageIncrease > 0 ? .red : .green)
+                ThemedStatCard(title: "Avg Before", value: "\(Int(averageBeforeMeal))", unit: "mg/dL", color: themeManager.currentTheme.chartBeforeColor)
+                ThemedStatCard(title: "Avg After", value: "\(Int(averageAfterMeal))", unit: "mg/dL", color: themeManager.currentTheme.chartAfterColor)
+                ThemedStatCard(title: "Avg Change", value: "\(averageIncrease > 0 ? "+" : "")\(Int(averageIncrease))", unit: "mg/dL", color: averageIncrease > 0 ? themeManager.currentTheme.positiveChangeColor : themeManager.currentTheme.negativeChangeColor)
             }
         }
     }
 }
 
-struct StatCard: View {
+struct ThemedStatCard: View {
     let title: String
     let value: String
     let unit: String
     let color: Color
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         VStack(spacing: 4) {
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
             Text(value)
                 .font(.title2)
@@ -181,12 +192,37 @@ struct StatCard: View {
 
             Text(unit)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(themeManager.currentTheme.statCardBackgroundColor)
         .cornerRadius(8)
+    }
+}
+
+struct ThemedCard<Content: View>: View {
+    let title: String
+    let content: Content
+    @EnvironmentObject var themeManager: ThemeManager
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(themeManager.currentTheme.cardBackgroundColor)
+        .cornerRadius(12)
     }
 }
 
@@ -195,4 +231,5 @@ struct StatCard: View {
         VisualizationView()
     }
     .modelContainer(for: MealEntry.self, inMemory: true)
+    .environmentObject(ThemeManager())
 }

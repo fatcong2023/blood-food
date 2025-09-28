@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @StateObject private var themeManager = ThemeManager()
+
     var body: some View {
         TabView {
             MealListView()
@@ -23,13 +25,17 @@ struct ContentView: View {
                     Text("Analytics")
                 }
         }
+        .environmentObject(themeManager)
+        .background(themeManager.currentTheme.backgroundColor)
     }
 }
 
 struct MealListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MealEntry.timestamp, order: .reverse) private var mealEntries: [MealEntry]
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var showingAddMeal = false
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationView {
@@ -40,21 +46,39 @@ struct MealListView: View {
                     } label: {
                         MealRowView(mealEntry: entry)
                     }
+                    .listRowBackground(themeManager.currentTheme.cardBackgroundColor)
                 }
                 .onDelete(perform: deleteMealEntries)
             }
+            .scrollContentBackground(.hidden)
+            .background(themeManager.currentTheme.backgroundColor)
             .navigationTitle("Blood & Food")
+            .toolbarBackground(themeManager.currentTheme.backgroundColor, for: .navigationBar)
+            .toolbarColorScheme(themeManager.currentTheme == .dark ? .dark : .light, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { showingSettings = true }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddMeal = true }) {
                         Image(systemName: "plus")
+                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     }
                 }
             }
             .sheet(isPresented: $showingAddMeal) {
                 AddMealView()
             }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .background(themeManager.currentTheme.backgroundColor)
     }
 
     private func deleteMealEntries(offsets: IndexSet) {
@@ -68,16 +92,18 @@ struct MealListView: View {
 
 struct MealRowView: View {
     let mealEntry: MealEntry
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(mealEntry.timestamp, format: Date.FormatStyle(date: .abbreviated, time: .shortened))
                     .font(.headline)
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                 Spacer()
                 if mealEntry.isComplete {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(themeManager.currentTheme.negativeChangeColor)
                 } else {
                     Image(systemName: "exclamationmark.circle")
                         .foregroundColor(.orange)
@@ -86,25 +112,27 @@ struct MealRowView: View {
 
             Text(mealEntry.mealDescription.isEmpty ? "No description" : mealEntry.mealDescription)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 .lineLimit(2)
 
             HStack {
                 if let before = mealEntry.bloodSugarBefore {
                     Text("Before: \(Int(before)) mg/dL")
                         .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.chartBeforeColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.2))
+                        .background(themeManager.currentTheme.chartBeforeColor.opacity(0.2))
                         .cornerRadius(8)
                 }
 
                 if let after = mealEntry.bloodSugarAfter {
                     Text("After: \(Int(after)) mg/dL")
                         .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.chartAfterColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.red.opacity(0.2))
+                        .background(themeManager.currentTheme.chartAfterColor.opacity(0.2))
                         .cornerRadius(8)
                 }
             }
