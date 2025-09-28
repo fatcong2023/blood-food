@@ -63,21 +63,34 @@ struct MealListView: View {
                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+            .overlay(
+                HStack {
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gearshape")
+                            .font(.title2)
                             .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            .frame(width: 44, height: 44)
+                            .background(themeManager.currentTheme.cardBackgroundColor)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
                     }
-                }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                    Spacer()
+
                     Button(action: { showingAddMeal = true }) {
                         Image(systemName: "plus")
+                            .font(.title2)
                             .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            .frame(width: 44, height: 44)
+                            .background(themeManager.currentTheme.cardBackgroundColor)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
                     }
                 }
-            }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20),
+                alignment: .bottom
+            )
             .sheet(isPresented: $showingAddMeal) {
                 AddMealView()
             }
