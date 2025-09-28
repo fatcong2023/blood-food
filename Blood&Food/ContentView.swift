@@ -52,9 +52,17 @@ struct MealListView: View {
             }
             .scrollContentBackground(.hidden)
             .background(themeManager.currentTheme.backgroundColor)
-            .navigationTitle("Blood & Food")
+            .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(themeManager.currentTheme.backgroundColor, for: .navigationBar)
             .toolbarColorScheme(themeManager.currentTheme == .dark ? .dark : .light, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Blood & Food")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { showingSettings = true }) {
@@ -88,6 +96,7 @@ struct MealListView: View {
             }
         }
     }
+
 }
 
 struct MealRowView: View {
