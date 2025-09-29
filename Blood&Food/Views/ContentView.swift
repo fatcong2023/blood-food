@@ -190,7 +190,9 @@ struct MealRowView: View {
     @Environment(\.modelContext) private var modelContext
 
     private var baselineInsulin: Double {
-        mealEntry.getBaselineInsulin(from: modelContext)
+        let insulin = mealEntry.getBaselineInsulin(from: modelContext)
+        print("DEBUG MealRowView: Meal '\(mealEntry.mealDescription)' (\(mealEntry.mealTime)) -> insulin: \(insulin)")
+        return insulin
     }
 
     var body: some View {
@@ -243,10 +245,20 @@ struct MealRowView: View {
                 if baselineInsulin > 0 {
                     Text("💉 \(String(format: "%.1f", baselineInsulin))u")
                         .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .fontWeight(.medium)
+                        .foregroundColor(Color.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(themeManager.currentTheme.primaryTextColor.opacity(0.2))
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                } else {
+                    // Debug: Show when no baseline is available
+                    Text("💉 No baseline")
+                        .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(themeManager.currentTheme.secondaryTextColor.opacity(0.1))
                         .cornerRadius(8)
                 }
             }

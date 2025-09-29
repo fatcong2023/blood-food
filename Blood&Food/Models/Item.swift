@@ -51,8 +51,11 @@ final class MealEntry {
 
     func getBaselineInsulin(from context: ModelContext) -> Double {
         guard let activeBaseline = BaselineInsulin.getCurrentActive(from: context) else {
+            print("DEBUG: No active baseline insulin found")
             return 0.0
         }
-        return activeBaseline.getInsulinForMealTime(mealTime)
+        let insulin = activeBaseline.getInsulinForMealTime(mealTime)
+        print("DEBUG: Meal time '\(mealTime)' -> insulin: \(insulin)")
+        return insulin
     }
 }

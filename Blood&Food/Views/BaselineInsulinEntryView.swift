@@ -11,10 +11,69 @@ struct BaselineInsulinEntryView: View {
     @State private var dinnerShortActing: String = ""
     @State private var bedtimeLongActing: String = ""
     @State private var notes: String = ""
+    @State private var currentBaseline: BaselineInsulin?
+    @State private var hasLoaded = false
 
     var body: some View {
         NavigationView {
             Form {
+                if let baseline = currentBaseline {
+                    Section(header: Text("Current Baseline Insulin")) {
+                        HStack {
+                            Text("Set on:")
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            Spacer()
+                            Text(baseline.dateCreated, format: Date.FormatStyle(date: .abbreviated, time: .shortened))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Breakfast:")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                Text("\(String(format: "%.1f", baseline.breakfastShortActing)) units")
+                                    .foregroundColor(themeManager.currentTheme.chartAfterColor)
+                                    .fontWeight(.medium)
+                            }
+
+                            HStack {
+                                Text("Lunch:")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                Text("\(String(format: "%.1f", baseline.lunchShortActing)) units")
+                                    .foregroundColor(themeManager.currentTheme.chartAfterColor)
+                                    .fontWeight(.medium)
+                            }
+
+                            HStack {
+                                Text("Dinner:")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                Text("\(String(format: "%.1f", baseline.dinnerShortActing)) units")
+                                    .foregroundColor(themeManager.currentTheme.chartAfterColor)
+                                    .fontWeight(.medium)
+                            }
+
+                            HStack {
+                                Text("Bedtime:")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                Text("\(String(format: "%.1f", baseline.bedtimeLongActing)) units")
+                                    .foregroundColor(themeManager.currentTheme.chartAfterColor)
+                                    .fontWeight(.medium)
+                            }
+                        }
+
+                        if !baseline.notes.isEmpty {
+                            Text("Notes: \(baseline.notes)")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                .padding(.top, 4)
+                        }
+                    }
+                    .listRowBackground(themeManager.currentTheme.cardBackgroundColor)
+                }
                 Section(header: Text("Short Acting Insulin (Meals)")) {
                     HStack {
                         Text("Breakfast")
@@ -80,6 +139,9 @@ struct BaselineInsulinEntryView: View {
             .background(themeManager.currentTheme.backgroundColor)
             .navigationTitle("Baseline Insulin")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                loadCurrentBaseline()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -99,6 +161,21 @@ struct BaselineInsulinEntryView: View {
         }
     }
 
+    private func loadCurrentBaseline() {
+        guard !hasLoaded else { return }
+        hasLoaded = true
+
+        currentBaseline = BaselineInsulin.getCurrentActive(from: modelContext)
+
+        if let baseline = currentBaseline {
+            breakfastShortActing = baseline.breakfastShortActing > 0 ? String(format: "%.1f", baseline.breakfastShortActing) : ""
+            lunchShortActing = baseline.lunchShortActing > 0 ? String(format: "%.1f", baseline.lunchShortActing) : ""
+            dinnerShortActing = baseline.dinnerShortActing > 0 ? String(format: "%.1f", baseline.dinnerShortActing) : ""
+            bedtimeLongActing = baseline.bedtimeLongActing > 0 ? String(format: "%.1f", baseline.bedtimeLongActing) : ""
+            notes = baseline.notes
+        }
+    }
+
     private func isValidInput() -> Bool {
         return !breakfastShortActing.isEmpty ||
                !lunchShortActing.isEmpty ||
@@ -107,6 +184,9 @@ struct BaselineInsulinEntryView: View {
     }
 
     private func saveBaselineInsulin() {
+        print("DEBUG: Saving baseline insulin...")
+        print("DEBUG: Values - Breakfast: \(breakfastShortActing), Lunch: \(lunchShortActing), Dinner: \(dinnerShortActing), Bedtime: \(bedtimeLongActing)")
+
         // Deactivate current baseline
         let descriptor = FetchDescriptor<BaselineInsulin>(
             predicate: #Predicate { $0.isActive == true }
@@ -114,6 +194,7 @@ struct BaselineInsulinEntryView: View {
 
         do {
             let activeBaselines = try modelContext.fetch(descriptor)
+            print("DEBUG: Found \(activeBaselines.count) active baselines to deactivate")
             for baseline in activeBaselines {
                 baseline.isActive = false
             }
@@ -122,19 +203,27 @@ struct BaselineInsulinEntryView: View {
         }
 
         // Create new baseline
+        let breakfastValue = Double(breakfastShortActing) ?? 0.0
+        let lunchValue = Double(lunchShortActing) ?? 0.0
+        let dinnerValue = Double(dinnerShortActing) ?? 0.0
+        let bedtimeValue = Double(bedtimeLongActing) ?? 0.0
+
         let newBaseline = BaselineInsulin(
-            breakfastShortActing: Double(breakfastShortActing) ?? 0.0,
-            lunchShortActing: Double(lunchShortActing) ?? 0.0,
-            dinnerShortActing: Double(dinnerShortActing) ?? 0.0,
-            bedtimeLongActing: Double(bedtimeLongActing) ?? 0.0,
+            breakfastShortActing: breakfastValue,
+            lunchShortActing: lunchValue,
+            dinnerShortActing: dinnerValue,
+            bedtimeLongActing: bedtimeValue,
             notes: notes,
             isActive: true
         )
+
+        print("DEBUG: Created baseline with values: B:\(breakfastValue), L:\(lunchValue), D:\(dinnerValue), Bed:\(bedtimeValue)")
 
         modelContext.insert(newBaseline)
 
         do {
             try modelContext.save()
+            print("DEBUG: Successfully saved baseline insulin")
             dismiss()
         } catch {
             print("Error saving baseline insulin: \(error)")
