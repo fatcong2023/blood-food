@@ -151,11 +151,18 @@ struct BaselineInsulinEntryView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveBaselineInsulin()
+                    HStack {
+                        Button("Clear") {
+                            clearAllFields()
+                        }
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                        Button("Save") {
+                            saveBaselineInsulin()
+                        }
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .disabled(!isValidInput())
                     }
-                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                    .disabled(!isValidInput())
                 }
             }
         }
@@ -174,6 +181,14 @@ struct BaselineInsulinEntryView: View {
             bedtimeLongActing = baseline.bedtimeLongActing > 0 ? String(format: "%.1f", baseline.bedtimeLongActing) : ""
             notes = baseline.notes
         }
+    }
+
+    private func clearAllFields() {
+        breakfastShortActing = ""
+        lunchShortActing = ""
+        dinnerShortActing = ""
+        bedtimeLongActing = ""
+        notes = ""
     }
 
     private func isValidInput() -> Bool {
