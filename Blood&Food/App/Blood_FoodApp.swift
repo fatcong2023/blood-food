@@ -13,6 +13,7 @@ struct Blood_FoodApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             MealEntry.self,
+            BaselineInsulin.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

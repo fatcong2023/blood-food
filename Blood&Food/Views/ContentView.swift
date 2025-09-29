@@ -32,23 +32,79 @@ struct ContentView: View {
 
 struct MealListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \MealEntry.timestamp, order: .reverse) private var mealEntries: [MealEntry]
+    @Query(sort: \MealEntry.timestamp, order: .reverse) private var allMealEntries: [MealEntry]
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showingAddMeal = false
     @State private var showingSettings = false
+    @State private var showingBaselineInsulinEntry = false
+    @State private var showingDateFilter = false
+    @State private var selectedDate: Date? = nil
+    @State private var showAllMeals = true
+
+    private var filteredMealEntries: [MealEntry] {
+        if showAllMeals {
+            return allMealEntries
+        } else if let selectedDate = selectedDate {
+            return allMealEntries.filter { entry in
+                Calendar.current.isDate(entry.timestamp, inSameDayAs: selectedDate)
+            }
+        } else {
+            return allMealEntries
+        }
+    }
+
+    private var displayTitle: String {
+        if showAllMeals {
+            return "Blood & Food"
+        } else if let selectedDate = selectedDate {
+            if Calendar.current.isDateInToday(selectedDate) {
+                return "Today's Meals"
+            } else {
+                return DateFormatter.localizedString(from: selectedDate, dateStyle: .medium, timeStyle: .none)
+            }
+        } else {
+            return "Blood & Food"
+        }
+    }
 
     var body: some View {
         NavigationView {
-            List {
-                ForEach(mealEntries) { entry in
-                    NavigationLink {
-                        MealDetailView(mealEntry: entry)
-                    } label: {
-                        MealRowView(mealEntry: entry)
+            VStack(spacing: 0) {
+                // Header with date filter and meal count
+                HStack {
+                    Button(action: { showingDateFilter = true }) {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text(showAllMeals ? "All Meals" : "Filtered")
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(themeManager.currentTheme.cardBackgroundColor)
+                        .cornerRadius(20)
                     }
-                    .listRowBackground(themeManager.currentTheme.cardBackgroundColor)
+
+                    Spacer()
+
+                    Text("\(filteredMealEntries.count) meals")
+                        .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 }
-                .onDelete(perform: deleteMealEntries)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
+                List {
+                    ForEach(filteredMealEntries) { entry in
+                        NavigationLink {
+                            MealDetailView(mealEntry: entry)
+                        } label: {
+                            MealRowView(mealEntry: entry)
+                        }
+                        .listRowBackground(themeManager.currentTheme.cardBackgroundColor)
+                    }
+                    .onDelete(perform: deleteMealEntries)
+                }
             }
             .scrollContentBackground(.hidden)
             .background(themeManager.currentTheme.backgroundColor)
@@ -57,7 +113,7 @@ struct MealListView: View {
             .toolbarColorScheme(themeManager.currentTheme == .dark ? .dark : .light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("Blood & Food")
+                    Text(displayTitle)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
@@ -67,6 +123,16 @@ struct MealListView: View {
                 HStack {
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gearshape")
+                            .font(.title2)
+                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            .frame(width: 44, height: 44)
+                            .background(themeManager.currentTheme.cardBackgroundColor)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+
+                    Button(action: { showingBaselineInsulinEntry = true }) {
+                        Image(systemName: "syringe")
                             .font(.title2)
                             .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             .frame(width: 44, height: 44)
@@ -97,6 +163,12 @@ struct MealListView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
+            .sheet(isPresented: $showingBaselineInsulinEntry) {
+                BaselineInsulinEntryView()
+            }
+            .sheet(isPresented: $showingDateFilter) {
+                DateFilterView(selectedDate: $selectedDate, showAllMeals: $showAllMeals)
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .background(themeManager.currentTheme.backgroundColor)
@@ -105,7 +177,7 @@ struct MealListView: View {
     private func deleteMealEntries(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(mealEntries[index])
+                modelContext.delete(filteredMealEntries[index])
             }
         }
     }
@@ -115,13 +187,23 @@ struct MealListView: View {
 struct MealRowView: View {
     let mealEntry: MealEntry
     @EnvironmentObject var themeManager: ThemeManager
+    @Environment(\.modelContext) private var modelContext
+
+    private var baselineInsulin: Double {
+        mealEntry.getBaselineInsulin(from: modelContext)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(mealEntry.timestamp, format: Date.FormatStyle(date: .abbreviated, time: .shortened))
-                    .font(.headline)
-                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(mealEntry.timestamp, format: Date.FormatStyle(date: .abbreviated, time: .shortened))
+                        .font(.headline)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    Text(mealEntry.mealTime)
+                        .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                }
                 Spacer()
                 if mealEntry.isComplete {
                     Image(systemName: "checkmark.circle.fill")
@@ -155,6 +237,16 @@ struct MealRowView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(themeManager.currentTheme.chartAfterColor.opacity(0.2))
+                        .cornerRadius(8)
+                }
+
+                if baselineInsulin > 0 {
+                    Text("💉 \(String(format: "%.1f", baselineInsulin))u")
+                        .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(themeManager.currentTheme.primaryTextColor.opacity(0.2))
                         .cornerRadius(8)
                 }
             }
