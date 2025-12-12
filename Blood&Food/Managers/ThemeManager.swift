@@ -57,7 +57,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .lightBlue:
             return Color(red: 0.3, green: 0.4, blue: 0.6)
         case .lightPink:
-            return Color(red: 0.6, green: 0.3, blue: 0.4)
+            return Color(red: 0.5, green: 0.2, blue: 0.3)
         }
     }
 

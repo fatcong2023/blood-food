@@ -20,6 +20,7 @@ struct AddMealView: View {
     @State private var notes = ""
     @State private var mealTime = Date()
     @State private var selectedMealType = ""
+    @State private var showingError = false
 
     private var inferredMealType: String {
         let hour = Calendar.current.component(.hour, from: mealTime)
@@ -115,6 +116,11 @@ struct AddMealView: View {
             .background(themeManager.currentTheme.backgroundColor)
             .navigationTitle("Add Meal")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Missing Information", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Please enter a description for your meal.")
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -128,13 +134,17 @@ struct AddMealView: View {
                         saveMeal()
                     }
                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                    .disabled(mealDescription.isEmpty)
                 }
             }
         }
     }
 
     private func saveMeal() {
+        if mealDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            showingError = true
+            return
+        }
+
         let beforeReading = Double(bloodSugarBefore.trimmingCharacters(in: .whitespacesAndNewlines))
         let afterReading = Double(bloodSugarAfter.trimmingCharacters(in: .whitespacesAndNewlines))
 

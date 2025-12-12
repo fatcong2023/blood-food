@@ -89,7 +89,7 @@ struct MealListView: View {
                     Spacer()
 
                     Text("\(filteredMealEntries.count) meals")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 }
                 .padding(.horizontal)
@@ -204,7 +204,7 @@ struct MealRowView: View {
                         .font(.headline)
                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     Text(mealEntry.mealTime)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 }
                 Spacer()
@@ -225,7 +225,7 @@ struct MealRowView: View {
             HStack {
                 if let before = mealEntry.bloodSugarBefore {
                     Text("Before: \(Int(before)) mg/dL")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(themeManager.currentTheme.chartBeforeColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
@@ -235,7 +235,7 @@ struct MealRowView: View {
 
                 if let after = mealEntry.bloodSugarAfter {
                     Text("After: \(Int(after)) mg/dL")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(themeManager.currentTheme.chartAfterColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
@@ -245,7 +245,7 @@ struct MealRowView: View {
 
                 if baselineInsulin > 0 {
                     Text("💉 \(String(format: "%.1f", baselineInsulin))u")
-                        .font(.caption)
+                        .font(.footnote)
                         .fontWeight(.medium)
                         .foregroundColor(Color.white)
                         .padding(.horizontal, 8)
@@ -255,7 +255,7 @@ struct MealRowView: View {
                 } else {
                     // Debug: Show when no baseline is available
                     Text("💉 No baseline")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)

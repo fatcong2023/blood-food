@@ -21,6 +21,7 @@ struct BaselineInsulinEntryView: View {
     @State private var notes: String = ""
     @State private var currentBaseline: BaselineInsulin?
     @State private var hasLoaded = false
+    @State private var showingError = false
 
     var body: some View {
         NavigationView {
@@ -147,6 +148,11 @@ struct BaselineInsulinEntryView: View {
             .background(themeManager.currentTheme.backgroundColor)
             .navigationTitle("Baseline Insulin")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Missing Information", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Please enter at least one insulin value.")
+            }
             .onAppear {
                 loadCurrentBaseline()
             }
@@ -169,7 +175,6 @@ struct BaselineInsulinEntryView: View {
                             saveBaselineInsulin()
                         }
                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                        .disabled(!isValidInput())
                     }
                 }
             }
@@ -207,6 +212,10 @@ struct BaselineInsulinEntryView: View {
     }
 
     private func saveBaselineInsulin() {
+        guard isValidInput() else {
+            showingError = true
+            return
+        }
         print("DEBUG: Saving baseline insulin...")
         print("DEBUG: Values - Breakfast: \(breakfastShortActing), Lunch: \(lunchShortActing), Dinner: \(dinnerShortActing), Bedtime: \(bedtimeLongActing)")
 
