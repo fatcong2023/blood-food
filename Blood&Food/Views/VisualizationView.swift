@@ -78,10 +78,18 @@ struct VisualizationView: View {
                         HStack {
                             DatePicker("Start", selection: $customStartDate, displayedComponents: [.date, .hourAndMinute])
                                 .labelsHidden()
+                                .colorScheme(.light)
+                                .padding(4)
+                                .background(Color.white)
+                                .cornerRadius(8)
                             Text("-")
                                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             DatePicker("End", selection: $customEndDate, displayedComponents: [.date, .hourAndMinute])
                                 .labelsHidden()
+                                .colorScheme(.light)
+                                .padding(4)
+                                .background(Color.white)
+                                .cornerRadius(8)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                     }
