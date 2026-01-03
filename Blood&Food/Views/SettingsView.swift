@@ -23,11 +23,11 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(theme.displayName)
                                     .font(.headline)
-                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                    .foregroundColor(theme.primaryTextColor)
 
                                 Text(themeDescription(for: theme))
                                     .font(.caption)
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                    .foregroundColor(theme.secondaryTextColor)
                             }
 
                             Spacer()
@@ -38,6 +38,7 @@ struct SettingsView: View {
                             }
                         }
                         .contentShape(Rectangle())
+                        .listRowBackground(themeManager.currentTheme.cardBackgroundColor)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 themeManager.currentTheme = theme
@@ -46,6 +47,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
