@@ -67,6 +67,10 @@ struct VisualizationView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                    .accentColor(themeManager.currentTheme.chartBeforeColor)
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    .background(themeManager.currentTheme.cardBackgroundColor)
+                    .cornerRadius(8)
                     
                     if selectedTimeRange == .custom {
                         HStack {
