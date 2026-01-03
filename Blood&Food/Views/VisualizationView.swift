@@ -28,6 +28,12 @@ struct VisualizationView: View {
         var id: String { self.rawValue }
     }
 
+    init() {
+        UISegmentedControl.appearance().selectedSegmentTintColor = .white
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.black], for: .selected)
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
+    }
+
     private var completedEntries: [MealEntry] {
         let entries = mealEntries.filter { $0.isComplete }
         
@@ -67,10 +73,6 @@ struct VisualizationView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    .accentColor(themeManager.currentTheme.chartBeforeColor)
-                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                    .background(themeManager.currentTheme.cardBackgroundColor)
-                    .cornerRadius(8)
                     
                     if selectedTimeRange == .custom {
                         HStack {
