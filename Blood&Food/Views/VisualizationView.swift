@@ -75,23 +75,31 @@ struct VisualizationView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     
                     if selectedTimeRange == .custom {
-                        HStack {
-                            DatePicker("Start", selection: $customStartDate, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
-                                .colorScheme(.light)
-                                .padding(4)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                            Text("-")
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            DatePicker("End", selection: $customEndDate, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
-                                .colorScheme(.light)
-                                .padding(4)
-                                .background(Color.white)
-                                .cornerRadius(8)
+                        VStack(spacing: 10) {
+                            HStack {
+                                Text("Start")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                DatePicker("Start", selection: $customStartDate, displayedComponents: [.date, .hourAndMinute])
+                                    .labelsHidden()
+                                    .colorScheme(.light)
+                                    .padding(4)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                            }
+                            
+                            HStack {
+                                Text("End")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                DatePicker("End", selection: $customEndDate, displayedComponents: [.date, .hourAndMinute])
+                                    .labelsHidden()
+                                    .colorScheme(.light)
+                                    .padding(4)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                            }
                         }
-                        .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
                 .padding(.bottom, 10)
@@ -105,6 +113,7 @@ struct VisualizationView: View {
                 }
             }
             .padding()
+            .animation(.default, value: selectedTimeRange)
         }
         .navigationTitle("Analytics")
         .navigationBarTitleDisplayMode(.large)
