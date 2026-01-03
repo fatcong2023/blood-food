@@ -13,14 +13,97 @@ import Charts
 struct VisualizationView: View {
     @Query(sort: \MealEntry.timestamp, order: .forward) private var mealEntries: [MealEntry]
     @EnvironmentObject var themeManager: ThemeManager
+    
+    @State private var selectedTimeRange: TimeRange = .pastWeek
+    @State private var customStartDate = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+    @State private var customEndDate = Date()
+
+    enum TimeRange: String, CaseIterable, Identifiable {
+        case past12Hours = "Past 12 Hr"
+        case past24Hours = "Past 24 Hr"
+        case past48Hours = "Past 48 Hr"
+        case pastWeek = "1 Week"
+        case custom = "Custom"
+        
+        var id: String { self.rawValue }
+    }
+
+    init() {
+        UISegmentedControl.appearance().selectedSegmentTintColor = .white
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.black], for: .selected)
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
+    }
 
     private var completedEntries: [MealEntry] {
-        mealEntries.filter { $0.isComplete }
+        let entries = mealEntries.filter { $0.isComplete }
+        
+        let endDate = selectedTimeRange == .custom ? customEndDate : Date()
+        let startDate: Date
+        
+        switch selectedTimeRange {
+        case .past12Hours:
+            startDate = Calendar.current.date(byAdding: .hour, value: -12, to: endDate) ?? endDate
+        case .past24Hours:
+            startDate = Calendar.current.date(byAdding: .hour, value: -24, to: endDate) ?? endDate
+        case .past48Hours:
+            startDate = Calendar.current.date(byAdding: .hour, value: -48, to: endDate) ?? endDate
+        case .pastWeek:
+            startDate = Calendar.current.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        case .custom:
+            startDate = customStartDate
+        }
+        
+        return entries.filter { entry in
+            entry.timestamp >= startDate && entry.timestamp <= endDate
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Time Range Selector
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Time Range")
+                        .font(.headline)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    
+                    Picker("Time Range", selection: $selectedTimeRange) {
+                        ForEach(TimeRange.allCases) { range in
+                            Text(range.rawValue).tag(range)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    if selectedTimeRange == .custom {
+                        VStack(spacing: 10) {
+                            HStack {
+                                Text("Start")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                DatePicker("Start", selection: $customStartDate, displayedComponents: [.date, .hourAndMinute])
+                                    .labelsHidden()
+                                    .colorScheme(.light)
+                                    .padding(4)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                            }
+                            
+                            HStack {
+                                Text("End")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                DatePicker("End", selection: $customEndDate, displayedComponents: [.date, .hourAndMinute])
+                                    .labelsHidden()
+                                    .colorScheme(.light)
+                                    .padding(4)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 10)
+
                 if completedEntries.isEmpty {
                     EmptyVisualizationView()
                 } else {
@@ -30,6 +113,7 @@ struct VisualizationView: View {
                 }
             }
             .padding()
+            .animation(.default, value: selectedTimeRange)
         }
         .navigationTitle("Analytics")
         .navigationBarTitleDisplayMode(.large)
@@ -68,7 +152,7 @@ struct BloodSugarTrendChart: View {
     var body: some View {
         ThemedCard(title: "Blood Sugar Trends") {
             Chart {
-                ForEach(entries.suffix(10), id: \.id) { entry in
+                ForEach(entries, id: \.id) { entry in
                     LineMark(
                         x: .value("Time", entry.timestamp),
                         y: .value("Before Meal", entry.bloodSugarBefore ?? 0)
@@ -114,7 +198,7 @@ struct BloodSugarChangeChart: View {
     var body: some View {
         ThemedCard(title: "Blood Sugar Changes") {
             Chart {
-                ForEach(changes.suffix(10), id: \.0) { timestamp, change in
+                ForEach(changes, id: \.0) { timestamp, change in
                     BarMark(
                         x: .value("Date", timestamp),
                         y: .value("Change", change)
