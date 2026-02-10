@@ -80,6 +80,10 @@ struct SettingsView: View {
     }
 
     private func themeTitleColor(for theme: AppTheme) -> Color {
+        if theme == .dark && themeManager.currentTheme != .dark {
+            return .black
+        }
+
         guard themeManager.currentTheme == .dark else {
             return theme.primaryTextColor
         }
