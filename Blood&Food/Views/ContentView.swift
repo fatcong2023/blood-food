@@ -54,9 +54,9 @@ struct MealListView: View {
         }
     }
 
-    private var displayTitle: String {
+    private var displayTitle: String? {
         if showAllMeals {
-            return "Blood & Food"
+            return nil
         } else if let selectedDate = selectedDate {
             if Calendar.current.isDateInToday(selectedDate) {
                 return "Today's Meals"
@@ -64,7 +64,7 @@ struct MealListView: View {
                 return DateFormatter.localizedString(from: selectedDate, dateStyle: .medium, timeStyle: .none)
             }
         } else {
-            return "Blood & Food"
+            return nil
         }
     }
 
@@ -113,11 +113,13 @@ struct MealListView: View {
             .toolbarBackground(themeManager.currentTheme.backgroundColor, for: .navigationBar)
             .toolbarColorScheme(themeManager.currentTheme == .dark ? .dark : .light, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(displayTitle)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                if let displayTitle {
+                    ToolbarItem(placement: .principal) {
+                        Text(displayTitle)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    }
                 }
             }
             .overlay(
