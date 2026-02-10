@@ -15,7 +15,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Theme") {
+                Section {
                     ForEach(AppTheme.allCases) { theme in
                         HStack {
                             ThemePreviewCard(theme: theme)
@@ -23,11 +23,11 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(theme.displayName)
                                     .font(.headline)
-                                    .foregroundColor(theme.primaryTextColor)
+                                    .foregroundColor(themeTitleColor(for: theme))
 
                                 Text(themeDescription(for: theme))
                                     .font(.caption)
-                                    .foregroundColor(theme.secondaryTextColor)
+                                    .foregroundColor(themeSubtitleColor(for: theme))
                             }
 
                             Spacer()
@@ -45,6 +45,9 @@ struct SettingsView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Theme")
+                        .foregroundColor(sectionHeaderColor)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -69,6 +72,40 @@ struct SettingsView: View {
             return "Calming blue tones for easy viewing"
         case .lightPink:
             return "Soft pink aesthetics for comfort"
+        }
+    }
+
+    private var sectionHeaderColor: Color {
+        themeManager.currentTheme == .dark ? .white : themeManager.currentTheme.secondaryTextColor
+    }
+
+    private func themeTitleColor(for theme: AppTheme) -> Color {
+        guard themeManager.currentTheme == .dark else {
+            return theme.primaryTextColor
+        }
+
+        switch theme {
+        case .dark:
+            return .white
+        case .lightBlue:
+            return Color(red: 0.56, green: 0.80, blue: 1.0)
+        case .lightPink:
+            return Color(red: 1.0, green: 0.72, blue: 0.86)
+        }
+    }
+
+    private func themeSubtitleColor(for theme: AppTheme) -> Color {
+        guard themeManager.currentTheme == .dark else {
+            return theme.secondaryTextColor
+        }
+
+        switch theme {
+        case .dark:
+            return Color(white: 0.75)
+        case .lightBlue:
+            return Color(red: 0.46, green: 0.70, blue: 0.96)
+        case .lightPink:
+            return Color(red: 0.95, green: 0.58, blue: 0.79)
         }
     }
 }
