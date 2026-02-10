@@ -106,6 +106,9 @@ struct MealListView: View {
                     }
                     .onDelete(perform: deleteMealEntries)
                 }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    floatingActionArea
+                }
             }
             .scrollContentBackground(.hidden)
             .background(themeManager.currentTheme.backgroundColor)
@@ -122,44 +125,6 @@ struct MealListView: View {
                     }
                 }
             }
-            .overlay(
-                HStack {
-                    Button(action: { showingSettings = true }) {
-                        Image(systemName: "gearshape")
-                            .font(.title2)
-                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            .frame(width: 44, height: 44)
-                            .background(themeManager.currentTheme.cardBackgroundColor)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-
-                    Button(action: { showingBaselineInsulinEntry = true }) {
-                        Image(systemName: "syringe")
-                            .font(.title2)
-                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            .frame(width: 44, height: 44)
-                            .background(themeManager.currentTheme.cardBackgroundColor)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-
-                    Spacer()
-
-                    Button(action: { showingAddMeal = true }) {
-                        Image(systemName: "plus")
-                            .font(.title2)
-                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            .frame(width: 44, height: 44)
-                            .background(themeManager.currentTheme.cardBackgroundColor)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20),
-                alignment: .bottom
-            )
             .sheet(isPresented: $showingAddMeal) {
                 AddMealView()
             }
@@ -183,6 +148,76 @@ struct MealListView: View {
                 modelContext.delete(filteredMealEntries[index])
             }
         }
+    }
+
+    private var floatingActionBar: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    themeManager.currentTheme.backgroundColor.opacity(0),
+                    themeManager.currentTheme.backgroundColor.opacity(0.75),
+                    themeManager.currentTheme.backgroundColor
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 10)
+
+            HStack {
+                Button(action: { showingSettings = true }) {
+                    Image(systemName: "gearshape")
+                        .font(.title2)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .frame(width: 44, height: 44)
+                        .background(themeManager.currentTheme.cardBackgroundColor)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+
+                Button(action: { showingBaselineInsulinEntry = true }) {
+                    Image(systemName: "syringe")
+                        .font(.title2)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .frame(width: 44, height: 44)
+                        .background(themeManager.currentTheme.cardBackgroundColor)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+
+                Spacer()
+
+                Button(action: { showingAddMeal = true }) {
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        .frame(width: 44, height: 44)
+                        .background(themeManager.currentTheme.cardBackgroundColor)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .background(themeManager.currentTheme.backgroundColor)
+        }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 22,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 22
+            )
+        )
+    }
+
+    private var floatingActionArea: some View {
+        VStack(spacing: 0) {
+            floatingActionBar
+            themeManager.currentTheme.backgroundColor
+                .frame(height: 28)
+        }
+        .background(themeManager.currentTheme.backgroundColor)
     }
 
 }
