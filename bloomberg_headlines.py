@@ -161,45 +161,60 @@ def load_cookies(path: str) -> list[dict]:
 
 # ── Homepage: collect article links ──────────────────────────────────────────
 
-def get_article_links(page, limit: int) -> list[dict]:
+def get_article_links(page, limit: int, debug: bool = False) -> list[dict]:
     print("[*] Loading bloomberg.com homepage …")
     try:
         page.goto("https://www.bloomberg.com", wait_until="domcontentloaded", timeout=30_000)
     except PWTimeout:
         print("[!] Homepage load timed out — will try with whatever rendered")
 
-    page.wait_for_timeout(3_000)
+    page.wait_for_timeout(4_000)
 
-    selectors = [
-        "a[data-component='headline']",
-        "a[class*='headline']",
-        "h1 a", "h2 a", "h3 a",
-        "[data-testid*='story'] a",
-        "article a",
-    ]
+    # Scroll down to trigger lazy-loading of more story cards
+    for _ in range(3):
+        page.mouse.wheel(0, 3000)
+        page.wait_for_timeout(1_000)
+
+    if debug:
+        page.screenshot(path="debug_homepage.png", full_page=True)
+        Path("debug_homepage.html").write_text(page.content(), encoding="utf-8")
+        print("  [debug] saved debug_homepage.png and debug_homepage.html")
+
+    # Bloomberg article URLs follow predictable patterns. Grab every <a> whose
+    # href looks like an article, which is far more robust than CSS classes.
+    article_re = re.compile(r"/(news/articles|news/features|opinion|news/newsletters)/")
 
     seen_urls:   set[str] = set()
     seen_titles: set[str] = set()
     results: list[dict]   = []
 
-    for sel in selectors:
+    anchors = page.query_selector_all("a[href]")
+    print(f"  [*] Scanning {len(anchors)} links on the page …")
+
+    for el in anchors:
         if len(results) >= limit:
             break
-        for el in page.query_selector_all(sel):
-            if len(results) >= limit:
-                break
-            title = (el.inner_text() or "").strip()
-            href  = el.get_attribute("href") or ""
-            if len(title) < 20:
-                continue
-            url = href if href.startswith("http") else f"https://www.bloomberg.com{href}"
-            if "bloomberg.com" not in url:
-                continue
-            if url in seen_urls or title in seen_titles:
-                continue
-            seen_urls.add(url)
-            seen_titles.add(title)
-            results.append({"title": title, "url": url})
+        href = el.get_attribute("href") or ""
+        if not article_re.search(href):
+            continue
+        url = href if href.startswith("http") else f"https://www.bloomberg.com{href}"
+        if "bloomberg.com" not in url:
+            continue
+        if url in seen_urls:
+            continue
+        title = (el.inner_text() or "").strip()
+        # Link text can be empty (image links); fall back to aria-label / the URL slug
+        if len(title) < 15:
+            title = (el.get_attribute("aria-label") or "").strip()
+        if len(title) < 15:
+            # derive from slug as last resort
+            slug = href.rstrip("/").split("/")[-1].replace("-", " ")
+            title = slug[:80]
+        if title in seen_titles:
+            continue
+        seen_urls.add(url)
+        seen_titles.add(title)
+        results.append({"title": title, "url": url})
 
     return results
 
@@ -321,6 +336,8 @@ def main():
                     help="Output folder (default: bloomberg_articles/)")
     ap.add_argument("--visible", action="store_true",
                     help="Show the browser window (useful for debugging login issues)")
+    ap.add_argument("--debug", action="store_true",
+                    help="Save a screenshot + HTML of the homepage to diagnose extraction issues")
     args = ap.parse_args()
 
     out_dir = Path(args.out)
@@ -353,10 +370,14 @@ def main():
                 browser.close()
                 sys.exit(1)
 
-        links = get_article_links(page, args.count)
+        links = get_article_links(page, args.count, debug=args.debug)
         if not links:
             browser.close()
-            sys.exit("[!] Could not find any articles on the homepage.")
+            sys.exit(
+                "[!] Could not find any articles on the homepage.\n"
+                "    Re-run with --debug to save debug_homepage.png/.html so we can see\n"
+                "    what the page actually returned (often a bot-check or consent wall)."
+            )
         print(f"[+] Found {len(links)} articles\n")
 
         saved = []
