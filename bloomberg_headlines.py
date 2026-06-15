@@ -42,42 +42,78 @@ except ImportError:
 
 # ── Login ─────────────────────────────────────────────────────────────────────
 
-def login(page, email: str, password: str) -> bool:
+def login(page, email: str, password: str, visible: bool = False) -> bool:
     """Log in to Bloomberg with email/password. Returns True on success."""
     print("[*] Logging in to Bloomberg …")
-    try:
-        page.goto("https://login.bloomberg.com/login", wait_until="domcontentloaded", timeout=30_000)
-    except PWTimeout:
-        pass
 
-    page.wait_for_timeout(2_000)
+    # Bloomberg's login redirects through their SSO — go via the main site
+    login_urls = [
+        "https://www.bloomberg.com/account/signin",
+        "https://login.bloomberg.com/login",
+    ]
 
-    # Fill email
-    email_sel = "input[type='email'], input[name='email'], input[id*='email']"
+    for url in login_urls:
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+            page.wait_for_timeout(3_000)
+            # Print current URL so we know where we ended up
+            print(f"  [*] Landed on: {page.url}")
+            break
+        except PWTimeout:
+            continue
+
+    # Dump all input fields so we can debug if needed
+    inputs = page.query_selector_all("input")
+    input_info = [(el.get_attribute("type"), el.get_attribute("name"), el.get_attribute("id")) for el in inputs]
+    if not any(t in ("email", "text", None) for t, _, _ in input_info):
+        print(f"  [!] Inputs on page: {input_info}")
+
+    # Fill email — try broad set of selectors
+    email_sel = (
+        "input[type='email'],"
+        "input[name='email'],"
+        "input[name='username'],"
+        "input[id*='email'],"
+        "input[id*='username'],"
+        "input[placeholder*='email' i],"
+        "input[placeholder*='Email' i]"
+    )
     try:
         page.wait_for_selector(email_sel, timeout=10_000)
         page.fill(email_sel, email)
+        print("  [+] Filled email")
     except Exception:
-        print("[!] Could not find email field — Bloomberg may have changed its login page")
+        print(f"  [!] Could not find email field. Current URL: {page.url}")
+        print(f"  [!] Inputs found: {input_info}")
+        if not visible:
+            print("  [!] Try running with --visible to watch the browser and see what's happening")
         return False
 
-    # Some flows show password on same page, others after clicking Next
-    next_btn = page.query_selector("button[type='submit'], button:has-text('Next'), button:has-text('Continue')")
-    if next_btn:
-        next_btn.click()
-        page.wait_for_timeout(2_000)
+    # Click Next/Continue if present (some flows split email + password across two screens)
+    for btn_text in ("Next", "Continue", "Sign In", "Log In"):
+        btn = page.query_selector(f"button:has-text('{btn_text}')")
+        if btn:
+            btn.click()
+            page.wait_for_timeout(2_000)
+            break
 
     # Fill password
     pw_sel = "input[type='password'], input[name='password']"
     try:
         page.wait_for_selector(pw_sel, timeout=10_000)
         page.fill(pw_sel, password)
+        print("  [+] Filled password")
     except Exception:
-        print("[!] Could not find password field")
+        print(f"  [!] Could not find password field. Current URL: {page.url}")
         return False
 
     # Submit
-    submit = page.query_selector("button[type='submit'], button:has-text('Sign In'), button:has-text('Log In')")
+    submit = page.query_selector(
+        "button[type='submit'],"
+        "button:has-text('Sign In'),"
+        "button:has-text('Log In'),"
+        "button:has-text('Continue')"
+    )
     if submit:
         submit.click()
     else:
@@ -85,16 +121,16 @@ def login(page, email: str, password: str) -> bool:
 
     # Wait for redirect away from login page
     try:
-        page.wait_for_url(re.compile(r"bloomberg\.com(?!/login)"), timeout=15_000)
+        page.wait_for_url(re.compile(r"bloomberg\.com(?!.*(login|signin))"), timeout=15_000)
     except PWTimeout:
         pass
 
-    page.wait_for_timeout(2_000)
+    page.wait_for_timeout(3_000)
+    print(f"  [*] After login URL: {page.url}")
 
-    # Verify we're logged in by checking for a subscriber indicator
     body = page.inner_text("body")
-    if "Sign In" in body[:300] or "Log In" in body[:300]:
-        print("[!] Login may have failed — check your credentials")
+    if "Sign In" in body[:500] or "Log In" in body[:500]:
+        print("[!] Login may have failed — still seeing login prompt")
         return False
 
     print("[+] Logged in successfully")
@@ -283,13 +319,15 @@ def main():
                     help="Number of articles to fetch (default: 20)")
     ap.add_argument("--out",   default="bloomberg_articles",
                     help="Output folder (default: bloomberg_articles/)")
+    ap.add_argument("--visible", action="store_true",
+                    help="Show the browser window (useful for debugging login issues)")
     args = ap.parse_args()
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=not args.visible)
         context = browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -310,7 +348,7 @@ def main():
         else:
             # Password: env var → terminal prompt (never hardcode)
             password = os.environ.get("BLOOMBERG_PASSWORD") or getpass.getpass("Bloomberg password: ")
-            ok = login(page, args.email, password)
+            ok = login(page, args.email, password, visible=args.visible)
             if not ok:
                 browser.close()
                 sys.exit(1)
